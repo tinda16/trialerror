@@ -5,6 +5,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FolderController;
+use App\Http\Controllers\WorkflowController; // <- TAMBAHAN: untuk workflow approval
 
 Route::get('/', fn() => redirect()->route('dashboard'));
 
@@ -46,27 +47,44 @@ Route::middleware(['auth'])->group(function () {
 
     // ==================== AKSES KHUSUS MANAGER ====================
     Route::middleware(['role:manager'])->group(function () {
-        // Workflow approvals (hanya manager)
-        Route::get('/files/approvals', fn() => view('welcome'))
-            ->middleware('perm:workflow.view')
-            ->name('files.approvals.index');
 
-        Route::post('/workflow/approve/{id}', fn() => abort(501))
+        // ========== WORKFLOW APPROVAL (MANAGER) ==========
+        Route::get('/workflow/approvals', [WorkflowController::class, 'index'])
+            ->middleware('perm:workflow.view')
+            ->name('workflow.index');
+
+        Route::post('/workflow/approve/{file}', [WorkflowController::class, 'approve'])
             ->middleware('perm:workflow.approve')
             ->name('workflow.approve');
 
-        // Halaman yang hanya boleh manager
+        Route::post('/workflow/reject/{file}', [WorkflowController::class, 'reject'])
+            ->middleware('perm:workflow.approve')
+            ->name('workflow.reject');
+
+        // ========== Halaman yang hanya boleh manager (tetap seperti awal) ==========
         Route::get('/users', fn() => view('welcome'))->name('users.index');
         Route::get('/audit-logs', fn() => view('welcome'))->name('audit-logs.index');
         Route::get('/roles', fn() => view('welcome'))->name('roles.index');
         Route::get('/customers', fn() => view('welcome'))->name('customers.index');
         Route::get('/transactions', fn() => view('welcome'))->name('transactions.index');
-        Route::get('/kpi', fn() => view('welcome'))->middleware('perm:kpi.view')->name('kpi.index');
+        Route::get('/kpi', fn() => view('welcome'))
+            ->middleware('perm:kpi.view')
+            ->name('kpi.index');
     });
 
     // ==================== AKSES KHUSUS STAFF ====================
     Route::middleware(['role:staff'])->group(function () {
-        // Contoh halaman khusus staff (misal upload dokumen)
+
+        // ========== WORKFLOW APPROVAL (STAFF) ==========
+        // Staff bisa lihat status submission mereka
+        Route::get('/workflow/my-submissions', [WorkflowController::class, 'mySubmissions'])
+            ->name('workflow.my-submissions');
+
+        // Staff submit file untuk di-approve manager
+        Route::post('/workflow/submit/{file}', [WorkflowController::class, 'submit'])
+            ->name('workflow.submit');
+
+        // Contoh halaman khusus staff (tetap dipertahankan)
         Route::get('/documents/upload', fn() => view('welcome'))
             ->middleware('perm:documents.upload')
             ->name('documents.create');
