@@ -19,8 +19,9 @@ class FileController extends Controller
 
     public function create()
     {
-        $folders     = Folder::all();
-        $categories  = Category::all();
+        $folders    = Folder::all();
+        $categories = Category::all();
+
         return view('file.create', compact('folders', 'categories'));
     }
 
@@ -37,9 +38,9 @@ class FileController extends Controller
         $sizeInBytes = null;
 
         if ($request->hasFile('file')) {
-            $uploaded     = $request->file('file');
-            $filePath     = $uploaded->store('uploads', 'public');
-            $sizeInBytes  = $uploaded->getSize();
+            $uploaded    = $request->file('file');
+            $filePath    = $uploaded->store('uploads', 'public');
+            $sizeInBytes = $uploaded->getSize();
         }
 
         File::create([
@@ -56,12 +57,27 @@ class FileController extends Controller
 
     /**
      * Halaman kategori (files + folders) berdasarkan category id.
+     *
+     * - Manager  : melihat semua file dalam kategori.
+     * - Non-manager (staff, dll):
+     *      - melihat file miliknya sendiri, berapa pun status approval-nya; dan
+     *      - file milik orang lain yang sudah berstatus "approved".
      */
     public function show($id)
     {
         $category = Category::findOrFail($id);
         $folders  = Folder::where('category_id', $id)->get();
-        $files    = File::where('category_id', $id)->get();
+
+        $files = File::where('category_id', $id)
+            ->when(!Auth::user()->hasRole('manager'), function ($query) {
+                $userId = Auth::id();
+
+                $query->where(function ($inner) use ($userId) {
+                    $inner->where('approval_status', 'approved')
+                          ->orWhere('user_id', $userId);
+                });
+            })
+            ->get();
 
         return view('category.show', compact('category', 'folders', 'files'));
     }

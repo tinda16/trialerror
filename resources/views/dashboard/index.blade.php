@@ -16,14 +16,23 @@
                 </a>
             </li>
 
-            {{-- SAG (tautan utama ke area SAG; aman jika route belum ada) --}}
-            @if (Route::has('users.index'))
-            <li>
-                <a href="{{ route('users.index') }}"
-                   class="{{ request()->routeIs('users.*') ? 'text-red-700' : 'text-gray-700 hover:text-red-700' }}">
-                   SAG
-                </a>
-            </li>
+            {{-- SAG (tautan ke workflow approval sesuai role) --}}
+            @if(auth()->check())
+                @if(auth()->user()->hasRole('manager'))
+                    <li>
+                        <a href="{{ route('workflow.index') }}"
+                           class="{{ request()->routeIs('workflow.*') ? 'text-red-700' : 'text-gray-700 hover:text-red-700' }}">
+                           SAG
+                        </a>
+                    </li>
+                @elseif(auth()->user()->hasRole('staff'))
+                    <li>
+                        <a href="{{ route('workflow.my-submissions') }}"
+                           class="{{ request()->routeIs('workflow.*') ? 'text-red-700' : 'text-gray-700 hover:text-red-700' }}">
+                           SAG
+                        </a>
+                    </li>
+                @endif
             @endif
 
             {{-- ERP (tautan utama ke area ERP) --}}
